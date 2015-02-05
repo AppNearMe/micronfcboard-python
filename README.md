@@ -15,14 +15,17 @@ Press the ```Bootloader``` button (right) and hold it while inserting the USB ca
 
 Download the current firmware: http://dev.appnearme.com/static/micronfcboard/fw/firmware-MICRONFCBOARD-e09183ea3886.bin
 
-### Windows and Mac OS X
+### Windows
 Open the ```CRP DISABLD``` drive, erase the ```firmware.bin``` file and drag and drop the firmware file into the disk. Once done, press the ```Reset``` button (left) for a second and release it.
 
 On Windows, you will need to use this file for proper installation of the serial driver:
 http://dev.appnearme.com/static/micronfcboard/drivers/micronfcboard_serial.inf
 
+### Mac OS X
+Using the terminal, erase the ```firmware.bin``` file from the ```CRP DISABLD``` drive (usually ```/Volumes/CRP\ DISABLD```) and copy the firmware file to the disk. Once done, press the ```Reset``` button (left) for a second and release it.
+
 ### Linux
-Flashing the firmware using the above method might not work. If so, use the following command:
+Flashing the firmware using the above methods might not work. If so, use the following command:
 ```shell
 umount /dev/sdX
 dd if=firmware-MICRONFCBOARD-*.bin of=/dev/sdX seek=4
