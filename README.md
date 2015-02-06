@@ -1,6 +1,15 @@
 # micronfcboard-python
 Python API for MicroNFCBoard
 
+# News
+Support for:
+* URI record
+* Text record
+* Smart poster record
+* MIME record
+
+Please update your firmware to use this new version of the Python API.
+
 # License
 This code is licensed under the Apache 2.0 License:
 http://www.apache.org/licenses/LICENSE-2.0
@@ -13,7 +22,7 @@ The USB HID code (in the interface/) directory is from [pyOCD](https://github.co
 
 Press the ```Bootloader``` button (right) and hold it while inserting the USB cable in your computer. The board should appear as an USB mass storage device with the label ```CRP DISABLD```.
 
-Download the current firmware: http://dev.appnearme.com/static/micronfcboard/fw/firmware-MICRONFCBOARD-e09183ea3886.bin
+Download the current firmware: http://dev.appnearme.com/static/micronfcboard/fw/firmware-MICRONFCBOARD-da4b5b46d489.bin
 
 ### Windows
 Open the ```CRP DISABLD``` drive, erase the ```firmware.bin``` file and drag and drop the firmware file into the disk. Once done, press the ```Reset``` button (left) for a second and release it.
