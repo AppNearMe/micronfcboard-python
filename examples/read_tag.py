@@ -21,8 +21,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from time import sleep
 from micronfcboard.board import MicroNFCBoard
-from micronfcboard.transport import Transport
-t = Transport()
 
 board = MicroNFCBoard.getBoard()
 
@@ -30,36 +28,26 @@ if( board == None ):
     print("Board not found")
     exit()
 
+board.open()
 
-t.open(board)
-
-version, revision, boardId = t.info()
-print("Connected to board id %s (version %d.%d)" % (boardId, version, revision) )
+print("Connected to board id %s (version %d.%d)" % (board.id, board.version[0], board.version[1]) )
 
 print("Start polling")
-t.nfcPoll(True)
+board.startPolling()
 
-polling = False
-connected = False
-ndefPresent = False
-
-while True:
-    polling, connected, ndefPresent = t.status()
-    if not polling:
-        break
+while board.polling:
     sleep(0.1)
 
-if connected:
-    uid = t.nfcGetInfo()
+if board.connected:
+    uid = board.getNfcInfo()
     print("ISO A tag detected: UID %s" % (uid,))
     
-if ndefPresent:
-    url = t.nfcGetRecordData()
-    print("URL: %s" % (url,))
+if board.ndefMessagePresent:
+    for record in board.ndefRecords:
+        print record
 
 print("End")
-#t.reset(True)
 
-t.close()
+board.close()
 
 exit()

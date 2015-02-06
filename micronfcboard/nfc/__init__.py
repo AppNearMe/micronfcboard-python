@@ -16,29 +16,4 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import os, sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from time import sleep
-from micronfcboard.board import MicroNFCBoard
-board = MicroNFCBoard.getBoard()
-
-if( board == None ):
-    print("Board not found")
-    exit()
-
-board.open()
-
-print("Connected to board id %s (version %d.%d)" % (board.id, board.version[0], board.version[1]) )
-
-print("Blinking LEDs")
-b = True
-for i in range(0, 10): 
-    board.setLeds( b, not b )
-    b = not b
-    sleep(0.2)
-board.setLeds( False, False )
-
-board.close()
-
-exit()
+import ndef
