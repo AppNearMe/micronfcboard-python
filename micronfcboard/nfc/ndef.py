@@ -28,7 +28,6 @@ class Record(object):
     def __str__(self):
         return "%s Record" % (self._type,)
         
-    
 class URIRecord(Record):
     def __init__(self, uri = None):
         super(URIRecord, self).__init__("URI")
@@ -42,10 +41,11 @@ class URIRecord(Record):
         return Record.__str__(self) + ": URI = %s" % (self._uri,)
     
 class TextRecord(Record):
-    def __init__(self, text = None, language = None):
+    def __init__(self, text = None, language = None, encoding="utf-8"):
         super(TextRecord, self).__init__("Text")
         self._text = text
         self._language = language
+        self._encoding = encoding
         
     @property
     def text(self):
@@ -55,8 +55,12 @@ class TextRecord(Record):
     def language(self):
         return self._language
     
+    @property
+    def encoding(self):
+        return self._encoding
+    
     def __str__(self):
-        return Record.__str__(self) + ": Language = %s, Text = %s" % (self._language, self.text)
+        return Record.__str__(self) + ": Language = %s, Text = %s, Encoding = %s" % (self._language, self.text, self.encoding)
     
 class SmartPosterRecord(Record):
     def __init__(self, records = []):

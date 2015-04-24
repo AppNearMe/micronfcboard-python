@@ -21,6 +21,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from time import sleep
 from micronfcboard.board import MicroNFCBoard
+from micronfcboard.nfc.ndef import URIRecord, TextRecord, SmartPosterRecord, MIMERecord
+
 
 board = MicroNFCBoard.getBoard()
 
@@ -44,19 +46,22 @@ if board.connected:
         atqa, sak, uid = board.getNfcInfo()
         print("ISO A tag detected: ATQS: %s, SAK: %s, UID %s" % (atqa, sak, uid,))
     elif board.p2p:
-        print("P2P mode")
+        print("P2P mode")   
 
-ndefMessageRead = False
-ndefReadingStarted = False
+ndefMessageWritten = False
+ndefWritingStarted = False
 while board.connected:
-    if not ndefReadingStarted and board.ndefReadable:
-        print("Reading tag")
-        ndefReadingStarted = True
-        board.ndefRead()
-    if not ndefMessageRead and board.ndefPresent:
-        ndefMessageRead = True
-        for record in board.ndefRecords:
-            print record
+    if not ndefWritingStarted and board.ndefWriteable:
+        print("Writing tag / SNEP Push")
+        ndefWritingStarted = True
+        board.ndefRecords = [SmartPosterRecord([URIRecord("http://www.appnearme.com/"), TextRecord("AppNearMe", "en")])]
+        board.ndefWrite()
+    if ndefWritingStarted and (not ndefMessageWritten) and (not board.ndefBusy):
+        ndefMessageWritten = True
+        if board.ndefSuccess:
+            print("Tag write successful")
+        else:
+            print("Tag write failed")
     sleep(0.1)
 
 print("Disconnnected")

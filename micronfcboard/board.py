@@ -25,16 +25,22 @@ from nfc.ndef import URIRecord, TextRecord, SmartPosterRecord, MIMERecord
 VID = 0x1FC9 #NXP VID
 PID = 0x8039 #Attributed to AppNearMe
 
-TARGET_FIRMWARE = (1,2)
+TARGET_FIRMWARE = (1,3)
 
 STATUS_POLLING        = (1 << 0)
 STATUS_CONNECTED      = (1 << 1)
 STATUS_NDEF_PRESENT   = (1 << 2)
+STATUS_NDEF_READABLE  = (1 << 3)
+STATUS_NDEF_WRITEABLE = (1 << 4)
+STATUS_NDEF_BUSY      = (1 << 5)
+STATUS_NDEF_SUCCESS   = (1 << 6)
 
+STATUS_TYPE_MASK      = (0xFF << 8)
 STATUS_TYPE1          = (1 << 8)
 STATUS_TYPE2          = (2 << 8)
 STATUS_TYPE3          = (3 << 8)
 STATUS_TYPE4          = (4 << 8)
+STATUS_P2P            = (8 << 8)
 
 STATUS_INITIATOR      = (1 << 16)
 STATUS_TARGET         = (0 << 16)
@@ -42,6 +48,12 @@ STATUS_TARGET         = (0 << 16)
 CHUNK_SIZE = 40
 
 TEXT_ENCODING = {0: "utf-8", 1: "utf-16"}
+
+class SmartPosterNestingException(Exception):
+    pass
+
+class FirmwareUpgradeRequiredException(Exception):
+    pass
 
 class MicroNFCBoard(object):
     @staticmethod
@@ -62,14 +74,23 @@ class MicroNFCBoard(object):
         self._version = None
         self._polling = False
         self._connected = False
-        self._ndefMessagePresent = False
+        self._type2 = False
+        self._p2p = False
+        self._ndefPresent = False
         self._ndefRecords = None
         self._ndefRead = False
+        self._ndefReadable = False
+        self._ndefWriteable = False
+        self._ndefBusy = False
+        self._ndefSuccess = False
         
     def open(self):
         self._transport.open(self._intf)
         version, revision, self._id = self._transport.info()
         self._version = (version, revision)
+        if( self._version < TARGET_FIRMWARE ):
+            #self._transport.reset(True)
+            raise FirmwareUpgradeRequiredException("Your current firmware (version %d.%d) is outdated; please upgrade it to version %d.%d" % (version, revision, TARGET_FIRMWARE[0], TARGET_FIRMWARE[1]))
         
     def close(self):
         self._transport.close()
@@ -82,24 +103,61 @@ class MicroNFCBoard(object):
     def connected(self):
         self._updateStatus()
         return self._connected
+
+    @property
+    def type2(self):
+        self._updateStatus()
+        return self._type2
     
+    @property
+    def p2p(self):
+        self._updateStatus()
+        return self._p2p
+
     @property
     def polling(self):
         self._updateStatus()
         return self._polling
     
     @property
-    def ndefMessagePresent(self):
+    def ndefReadable(self):
         self._updateStatus()
-        return self._ndefMessagePresent
+        return self._ndefReadable
+    
+    @property
+    def ndefWriteable(self):
+        self._updateStatus()
+        return self._ndefWriteable
+    
+    @property
+    def ndefPresent(self):
+        self._updateStatus()
+        return self._ndefPresent
+    
+    @property
+    def ndefBusy(self):
+        self._updateStatus()
+        return self._ndefBusy
+    
+    @property
+    def ndefSuccess(self):
+        self._updateStatus()
+        return self._ndefSuccess
     
     @property
     def ndefRecords(self):
         self._updateStatus()
-        if self._ndefMessagePresent and not self._ndefRead:
+        if self._ndefPresent and not self._ndefRead:
             self._ndefRecords = self._getNdefMessageRecords()
-            self._ndefRecordsRead = True
+            self._ndefRead = True
         return self._ndefRecords
+    
+    @ndefRecords.setter
+    def ndefRecords(self, records):
+        self._updateStatus()
+        self._ndefRecords = records
+        #Push them to device
+        self._setNdefRecords(self._ndefRecords)
     
     @property
     def version(self):
@@ -115,7 +173,13 @@ class MicroNFCBoard(object):
         self._transport.nfcPoll(True)
         
     def stopPolling(self):
-        self._transport.nfcPoll(True)
+        self._transport.nfcPoll(False)
+        
+    def ndefRead(self):
+        self._transport.nfcOperation(True, False)
+        
+    def ndefWrite(self):
+        self._transport.nfcOperation(False, True)
         
     def setLeds(self, led1, led2):
         self._transport.leds(led1, led2)
@@ -124,9 +188,17 @@ class MicroNFCBoard(object):
         status = self._transport.status()
         self._polling = (status & STATUS_POLLING) != 0
         self._connected = (status & STATUS_CONNECTED) != 0
-        self._ndefMessagePresent = (status & STATUS_NDEF_PRESENT) != 0
-        if not self._ndefMessagePresent:
-            self._ndefRecordsRead = False
+        self._ndefPresent = (status & STATUS_NDEF_PRESENT) != 0
+        self._ndefReadable = (status & STATUS_NDEF_READABLE) != 0
+        self._ndefWriteable = (status & STATUS_NDEF_WRITEABLE) != 0
+        self._ndefBusy = (status & STATUS_NDEF_BUSY) != 0
+        self._ndefSuccess = (status & STATUS_NDEF_SUCCESS) != 0
+        self._type2 = (status & STATUS_TYPE_MASK) == STATUS_TYPE2
+        self._p2p = (status & STATUS_TYPE_MASK) == STATUS_P2P
+        
+        if not self._ndefPresent:
+            self._ndefRead = False
+            self._ndefRecords = None
         
     def _getNdefRecords(self, start, count):
         records = []
@@ -153,8 +225,9 @@ class MicroNFCBoard(object):
         return None
     
     def _parseURIRecord(self, recordNumber, recordInfo):
-        uriLength = recordInfo[0]
-        uri = unicode(self._getRecordData(recordNumber, 0, uriLength).tostring(), "utf-8")
+        uriPrefix = recordInfo[0]
+        uriLength = recordInfo[1]
+        uri = unicode(self._decodePrefix(uriPrefix).tostring() + self._getRecordData(recordNumber, 0, uriLength).tostring(), "utf-8")
         return URIRecord(uri)
     
     def _parseTextRecord(self, recordNumber, recordInfo):
@@ -163,7 +236,7 @@ class MicroNFCBoard(object):
         textLength = recordInfo[2]
         languageCode = unicode(self._getRecordData(recordNumber, 0, languageCodeLength).tostring(), "utf-8")
         text = unicode(self._getRecordData(recordNumber, 1, textLength).tostring(), encoding)
-        return TextRecord(text, languageCode)
+        return TextRecord(text, languageCode, encoding)
     
     def _parseSmartPosterRecord(self, recordNumber, recordInfo):
         recordsStart = recordInfo[0]
@@ -178,10 +251,148 @@ class MicroNFCBoard(object):
         data = self._getRecordData(recordNumber, 1, dataLength)
         return MIMERecord(mimeType, data)
     
+    def _decodePrefix(self, prefix):
+        return self._transport.nfcDecodePrefix(prefix)
+    
     def _getRecordData(self, recordNumber, item, itemLength):
         buf = array("B")
         while len(buf) < itemLength:
             chunkLength = min(CHUNK_SIZE, itemLength - len(buf))
             buf += self._transport.nfcGetRecordData(recordNumber, item, len(buf), chunkLength)
         return buf
+    
+    def _setNdefRecords(self, records):
+        self._transport.nfcPrepareMessage(True, False)
+        recordNumber = 0
+        spRecordNumber = len(records) #Smart poster records after main records
+        for record in records:
+            spRecordNumber = self._addNdefRecord(recordNumber, record, spRecordNumber)
+            recordNumber += 1
+        self._transport.nfcSetMessageInfo(recordNumber)
+        self._transport.nfcPrepareMessage(False, True)
+        recordNumber = 0
+        spRecordNumber = len(records) 
+        for record in records:
+            spRecordNumber = self._setNdefRecord(recordNumber, record, spRecordNumber)
+            recordNumber += 1
+        #self._transport.nfcSetMessageInfo(recordNumber)
+        
+    def _addNdefRecord(self, recordNumber, record, recordsStart, spAllowed = True):
+        funcs = {   URIRecord : self._generateURIRecord,
+                    TextRecord : self._generateTextRecord,
+                    SmartPosterRecord : self._generateSmartPosterRecord,
+                    MIMERecord : self._generateMIMERecord,
+                }
+        
+        if( not spAllowed and type(record) == SmartPosterRecord ):
+            raise SmartPosterNestingException()
+                
+        return funcs[type(record)](recordNumber, record, recordsStart)
+        
+    def _generateURIRecord(self, recordNumber, record, spRecordNumber):
+        #Try to get prefix
+        buf = array("B")
+        buf.fromstring(record.uri)
+        prefix, length = self._encodePrefix(buf[0:36])
+        
+        self._transport.nfcSetRecordInfo(recordNumber, 1, [prefix, len(buf[length:])])
+        
+        return spRecordNumber
+        
+    def _generateTextRecord(self, recordNumber, record, spRecordNumber):
+        languageCodeBuf = array("B")
+        languageCodeBuf.fromstring(record.language)
+       
+        textBuf = array("B")
+        textBuf.fromstring(record.text)
+        
+        self._transport.nfcSetRecordInfo(recordNumber, 2, [{v: k for k, v in TEXT_ENCODING.items()}[record.encoding], len(languageCodeBuf), len(textBuf)])
+        
+        return spRecordNumber
+        
+    def _generateSmartPosterRecord(self, recordNumber, record, recordsStart):
+        self._transport.nfcSetRecordInfo(recordNumber, 3, [recordsStart, len(record.records)])
+        spRecordNumber = recordsStart
+        
+        for spRecord in record.records:
+            self._addNdefRecord(spRecordNumber, spRecord, 0, False) #No sub records
+            spRecordNumber += 1
             
+        return spRecordNumber
+    
+    def _generateMIMERecord(self, recordNumber, record, spRecordNumber):
+        mimeTypeBuf = array("B")
+        mimeTypeBuf.fromstring(record.mimeType)
+       
+        dataBuf = array("B", record.data)
+        
+        self._transport.nfcSetRecordInfo(recordNumber, 4, [len(mimeTypeBuf), len(dataBuf)])
+        
+        return spRecordNumber
+    
+    def _setNdefRecord(self, recordNumber, record, recordsStart, spAllowed = True):
+        funcs = {   URIRecord : self._setURIRecord,
+                    TextRecord : self._setTextRecord,
+                    SmartPosterRecord : self._setSmartPosterRecord,
+                    MIMERecord : self._setMIMERecord,
+                }
+        
+        if( not spAllowed and type(record) == SmartPosterRecord ):
+            raise SmartPosterNestingException()
+                
+        return funcs[type(record)](recordNumber, record, recordsStart)
+        
+    def _setURIRecord(self, recordNumber, record, spRecordNumber):
+        #Try to get prefix
+        buf = array("B")
+        buf.fromstring(record.uri)
+        prefix, length = self._encodePrefix(buf[0:36])
+        
+        self._setRecordData(recordNumber, 0, buf[length:])
+        
+        return spRecordNumber
+        
+    def _setTextRecord(self, recordNumber, record, spRecordNumber):
+        languageCodeBuf = array("B")
+        languageCodeBuf.fromstring(record.language)
+       
+        textBuf = array("B")
+        textBuf.fromstring(record.text)
+        
+        self._setRecordData(recordNumber, 0, languageCodeBuf)
+        self._setRecordData(recordNumber, 1, textBuf)
+        
+        return spRecordNumber
+        
+    def _setSmartPosterRecord(self, recordNumber, record, recordsStart):
+        spRecordNumber = recordsStart
+        
+        for spRecord in record.records:
+            self._setNdefRecord(spRecordNumber, spRecord, 0, False) #No sub records
+            spRecordNumber += 1
+            
+        return spRecordNumber
+    
+    def _setMIMERecord(self, recordNumber, record, spRecordNumber):
+        mimeTypeBuf = array("B")
+        mimeTypeBuf.fromstring(record.mimeType)
+       
+        dataBuf = array("B", record.data)
+        
+        self._setRecordData(recordNumber, 0, mimeTypeBuf)
+        self._setRecordData(recordNumber, 1, dataBuf)
+        
+        return spRecordNumber
+
+    def _encodePrefix(self, uri):
+        prefix, length = self._transport.nfcEncodePrefix(uri)
+        return prefix, length
+    
+    def _setRecordData(self, recordNumber, item, itemData):
+        itemLength = len(itemData)
+        itemOff = 0
+        while itemOff < itemLength:
+            chunkLength = min(CHUNK_SIZE, itemLength - itemOff)
+            buf = array("B", itemData[itemOff:itemOff+chunkLength])
+            self._transport.nfcSetRecordData(recordNumber, item, itemOff, buf)
+            itemOff += chunkLength

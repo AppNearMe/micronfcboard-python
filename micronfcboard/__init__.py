@@ -19,3 +19,4 @@ limitations under the License.
 import interface
 import transport
 import board
+import nfc
