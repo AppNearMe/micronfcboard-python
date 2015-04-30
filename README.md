@@ -4,6 +4,10 @@ Python API for MicroNFCBoard
 ![MicroNFCBoard][micronfcboard]
 
 # News
+
+* P2P Support
+* Tag writing
+
 Support for:
 * URI record
 * Text record
