@@ -9,6 +9,7 @@ Python API for MicroNFCBoard
 * Tag writing
 
 Support for:
+
 * URI record
 * Text record
 * Smart poster record
