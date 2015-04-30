@@ -66,5 +66,5 @@ Navigate to the ```examples/``` directory.
 The ```blink.py``` example will blink the board's LEDs a few times.
 The ```read_tag.py``` example will start polling for tags and display a tag's UID, decoding a NDEF-encoded URL if available.
 
-[MicroNFCBoard]: appnearme.github.io/micronfboard-python/img/micronfcboard.png
+[MicroNFCBoard]: http://appnearme.github.io/micronfcboard-python/img/micronfcboard.png
 
