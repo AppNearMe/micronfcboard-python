@@ -1,5 +1,7 @@
-# micronfcboard-python
+# MicroNFCBoard: Python API
 Python API for MicroNFCBoard
+
+![MicroNFCBoard][micronfcboard]
 
 # News
 Support for:
@@ -63,4 +65,6 @@ Navigate to the ```examples/``` directory.
 
 The ```blink.py``` example will blink the board's LEDs a few times.
 The ```read_tag.py``` example will start polling for tags and display a tag's UID, decoding a NDEF-encoded URL if available.
+
+[MicroNFCBoard]: appnearme.github.io/micronfboard-python/img/micronfcboard.png
 
