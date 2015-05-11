@@ -7,6 +7,7 @@ Python API for MicroNFCBoard
 
 * P2P Support
 * Tag writing
+* Tag emulation
 
 Support for:
 
@@ -29,7 +30,7 @@ The USB HID code (in the interface/) directory is from [pyOCD](https://github.co
 
 Press the ```Bootloader``` button (right) and hold it while inserting the USB cable in your computer. The board should appear as an USB mass storage device with the label ```CRP DISABLD```. If you are upgrading the firmware, you can also hold the ```Bootloader``` button while pressing the ```Reset``` button and then releasing it.
 
-Download the current firmware: http://dev.appnearme.com/static/micronfcboard/fw/firmware-MICRONFCBOARD-e87e19ab4d8b.bin
+Download the current firmware (version 1.4): http://dev.appnearme.com/static/micronfcboard/fw/firmware-MICRONFCBOARD-01545afca7f3.bin
 
 ### Windows
 Open the ```CRP DISABLD``` drive, erase the ```firmware.bin``` file and drag and drop the firmware file into the disk. Once done, press the ```Reset``` button (left) for a second and release it.
@@ -68,8 +69,19 @@ A notable dependy is libusb-1.0.
 ### Running the examples
 Navigate to the ```examples/``` directory.
 
-The ```blink.py``` example will blink the board's LEDs a few times.
-The ```read_tag.py``` example will start polling for tags and display a tag's UID, decoding a NDEF-encoded URL if available.
+#### Basic
+* The ```blink.py``` example will blink the board's LEDs a few times.
+
+#### Tags
+* The ```tag_reader.py``` example will poll for tags and display a tag's UID, decoding a NDEF message if available.
+* The ```tag_writer.py``` example will poll for tags and display a tag's UID, and then write a NDEF message to the tag.
+
+#### P2P
+* The ```p2p_server.py``` example will poll for peers and wait for the peer to push a NDEF message (works with a NFC  phone/tablet or another MicroNFCBoard).
+* The ```p2p_client.py``` example will poll for peers and push a NDEF message to the peer (works with a NFC  phone/tablet or another MicroNFCBoard).
+
+#### Tag emulation
+* The ```tag_emulator.py``` example will encode a NDEF message, poll for initiators and decode a new NDEF message if written to the emulated tag.
 
 [MicroNFCBoard]: http://appnearme.github.io/micronfcboard/doc/img/micronfcboard-small.png
 
