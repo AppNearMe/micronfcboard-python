@@ -25,7 +25,7 @@ from nfc.ndef import URIRecord, TextRecord, SmartPosterRecord, MIMERecord
 VID = 0x1FC9 #NXP VID
 PID = 0x8039 #Attributed to AppNearMe
 
-TARGET_FIRMWARE = (1,3)
+TARGET_FIRMWARE = (1, 4)
 
 STATUS_POLLING        = (1 << 0)
 STATUS_CONNECTED      = (1 << 1)
@@ -75,7 +75,9 @@ class MicroNFCBoard(object):
         self._polling = False
         self._connected = False
         self._type2 = False
+        self._type4 = False
         self._p2p = False
+        self._initiator = False
         self._ndefPresent = False
         self._ndefRecords = None
         self._ndefRead = False
@@ -105,9 +107,14 @@ class MicroNFCBoard(object):
         return self._connected
 
     @property
-    def type2(self):
+    def type2Tag(self):
         self._updateStatus()
-        return self._type2
+        return self._type2 and self._initiator
+    
+    @property
+    def type4Emulator(self):
+        self._updateStatus()
+        return self._type4 and not self._initiator
     
     @property
     def p2p(self):
@@ -169,11 +176,11 @@ class MicroNFCBoard(object):
     def reset(self):
         self._transport.reset(False)
         
-    def startPolling(self):
-        self._transport.nfcPoll(True)
+    def startPolling(self, readerWriter, emulator, p2p):
+        self._transport.nfcPoll(readerWriter, emulator, p2p)
         
     def stopPolling(self):
-        self._transport.nfcPoll(False)
+        self._transport.nfcPoll(False, False, False)
         
     def ndefRead(self):
         self._transport.nfcOperation(True, False)
@@ -194,7 +201,9 @@ class MicroNFCBoard(object):
         self._ndefBusy = (status & STATUS_NDEF_BUSY) != 0
         self._ndefSuccess = (status & STATUS_NDEF_SUCCESS) != 0
         self._type2 = (status & STATUS_TYPE_MASK) == STATUS_TYPE2
+        self._type4 = (status & STATUS_TYPE_MASK) == STATUS_TYPE4
         self._p2p = (status & STATUS_TYPE_MASK) == STATUS_P2P
+        self._initiator = (status & STATUS_INITIATOR) != 0
         
         if not self._ndefPresent:
             self._ndefRead = False

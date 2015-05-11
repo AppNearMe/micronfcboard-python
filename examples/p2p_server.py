@@ -34,26 +34,21 @@ print("Connected to board id %s (version %d.%d)" % (board.id, board.version[0], 
 
 if not board.connected:
     print("Start polling")
-    board.startPolling()
+    board.startPolling(False, False, True)
 
 while board.polling:
     sleep(0.1)
 
-if board.connected:
-    if board.type2:
-        atqa, sak, uid = board.getNfcInfo()
-        print("ISO A tag detected: ATQS: %s, SAK: %s, UID %s" % (atqa, sak, uid,))
-    elif board.p2p:
-        print("P2P mode")
+if board.connected and board.p2p:
+    print("P2P mode")
+else:
+    print("Could not connect")
+    exit()
 
 ndefMessageRead = False
-ndefReadingStarted = False
 while board.connected:
-    if not ndefReadingStarted and board.ndefReadable:
-        print("Reading tag")
-        ndefReadingStarted = True
-        board.ndefRead()
     if not ndefMessageRead and board.ndefPresent:
+        print("Received:")
         ndefMessageRead = True
         for record in board.ndefRecords:
             print record

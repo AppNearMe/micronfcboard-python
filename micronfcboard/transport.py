@@ -60,12 +60,16 @@ class Transport(object):
             raise BoardError('Device returned %d' % resp[1])
         return unpack(">I", resp[2:6])[0]
          
-    def nfcPoll(self, enable):
+    def nfcPoll(self, readerWriter, emulator, p2p):
         cmd = [ COMMAND_ID['NFC_POLL'] ]
-        if(enable):
-            cmd.append(1)
-        else:
-            cmd.append(0)
+        modes = 0
+        if(readerWriter):
+            modes |= 1
+        if(emulator):
+            modes |= 2
+        if(p2p):
+            modes |= 4
+        cmd.append(modes)
         self.interface.write(cmd)
         resp = array('B', self.interface.read())
         if (resp[0] != COMMAND_ID['NFC_POLL']):

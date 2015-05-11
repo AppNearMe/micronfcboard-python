@@ -36,25 +36,26 @@ print("Connected to board id %s (version %d.%d)" % (board.id, board.version[0], 
 
 if not board.connected:
     print("Start polling")
-    board.startPolling()
+    board.startPolling(True, False, False)
 
 while board.polling:
     sleep(0.1)
 
-if board.connected:
-    if board.type2:
-        atqa, sak, uid = board.getNfcInfo()
-        print("ISO A tag detected: ATQS: %s, SAK: %s, UID %s" % (atqa, sak, uid,))
-    elif board.p2p:
-        print("P2P mode")   
-
+if board.connected and board.type2Tag:
+    atqa, sak, uid = board.getNfcInfo()
+    print("ISO A tag detected: ATQA: %s, SAK: %s, UID %s" % (atqa, sak, uid,))
+else:
+    print("Could not connect")
+    exit()
+    
 ndefMessageWritten = False
 ndefWritingStarted = False
+
 while board.connected:
     if not ndefWritingStarted and board.ndefWriteable:
-        print("Writing tag / SNEP Push")
+        print("Writing tag")
         ndefWritingStarted = True
-        board.ndefRecords = [SmartPosterRecord([URIRecord("http://www.appnearme.com/"), TextRecord("AppNearMe", "en")])]
+        board.ndefRecords = [SmartPosterRecord([URIRecord("http://www.micronfcboard.com/"), TextRecord("MicroNFCBoard", "en")])]
         board.ndefWrite()
     if ndefWritingStarted and (not ndefMessageWritten) and (not board.ndefBusy):
         ndefMessageWritten = True
