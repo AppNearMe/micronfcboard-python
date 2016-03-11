@@ -23,7 +23,7 @@ try:
     import usb.util
 except:
     if os.name == "posix" and not os.uname()[0] == 'Darwin':
-        logging.error("PyUSB is required on a Linux Machine")
+        raise Exception("PyUSB is required on a Linux Machine")
     isAvailable = False
 else:
     isAvailable = True
