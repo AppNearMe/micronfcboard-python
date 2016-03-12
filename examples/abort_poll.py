@@ -49,7 +49,7 @@ for i in range(1,10):
             print("Stop polling")
             board.stopPolling()
 
-print("Disconnnected")
+print("Disconnected")
 
 board.close()
 
