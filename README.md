@@ -30,7 +30,7 @@ The USB HID code (in the interface/) directory is from [pyOCD](https://github.co
 
 Press the ```Bootloader``` button (right) and hold it while inserting the USB cable in your computer. The board should appear as an USB mass storage device with the label ```CRP DISABLD```. If you are upgrading the firmware, you can also hold the ```Bootloader``` button while pressing the ```Reset``` button and then releasing it.
 
-Download the current firmware (version 1.5): http://dev.appnearme.com/static/micronfcboard/fw/firmware-MICRONFCBOARD-d4f6aecb7316.bin
+Download the current firmware (version 1.5): https://github.com/AppNearMe/micronfcboard-python/releases/download/1.5/firmware-MICRONFCBOARD-d4f6aecb7316.bin
 
 ### Windows
 Open the ```CRP DISABLD``` drive, erase the ```firmware.bin``` file and drag and drop the firmware file into the disk. Once done, press the ```Reset``` button (left) for a second and release it.
