@@ -63,7 +63,7 @@ while board.connected:
             print("Push failed")
     sleep(0.1)
 
-print("Disconnnected")
+print("Disconnected")
 
 board.close()
 

@@ -65,7 +65,7 @@ while board.connected:
             print("Tag write failed")
     sleep(0.1)
 
-print("Disconnnected")
+print("Disconnected")
 
 board.close()
 

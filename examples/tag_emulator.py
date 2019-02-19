@@ -58,7 +58,7 @@ while board.connected or board.polling:
             print record
     sleep(0.1)
 
-print("Disconnnected")
+print("Disconnected")
 
 board.close()
 
